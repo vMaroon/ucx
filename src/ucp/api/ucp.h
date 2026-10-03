@@ -2845,6 +2845,20 @@ ucs_status_t ucp_ep_create(ucp_worker_h worker, const ucp_ep_params_t *params,
  *                                completed at any point in time. A request
  *                                handle is returned to the application in order
  *                                to track progress of the endpoint closure.
+ *
+ * @note Without @ref UCP_EP_CLOSE_FLAG_FORCE, an endpoint created from a
+ *       remote worker address keeps its transport resources after the
+ *       closure completes if it exchanged connection establishment messages
+ *       with the peer, so the peer can keep sending to it. This happens when
+ *       the endpoint uses a point-to-point transport, such as RC, when it is
+ *       created with @ref UCP_ERR_HANDLING_MODE_PEER and keepalive is
+ *       enabled, or after an operation which needs a reply from the peer,
+ *       such as a rendezvous send. These resources are released only when
+ *       the worker is destroyed or a peer failure is detected, so creating
+ *       and closing such endpoints to a peer which stays alive increases
+ *       resource usage on every cycle. To release them while the peer is
+ *       alive, close the endpoint with @ref UCP_EP_CLOSE_FLAG_FORCE, after
+ *       @ref ucp_ep_flush_nbx if the outstanding operations have to complete.
  */
 ucs_status_ptr_t ucp_ep_close_nbx(ucp_ep_h ep,
                                   const ucp_request_param_t *param);
