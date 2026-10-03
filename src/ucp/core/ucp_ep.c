@@ -914,7 +914,7 @@ ucp_ep_create_to_worker_addr(ucp_worker_h worker,
                                    remote_address, addr_indices,
                                    &am_need_flush);
     if (status != UCS_OK) {
-        goto err_delete;
+        goto err_destroy;
     }
 
     ucp_ep_get_tl_bitmap(&ucp_ep_config(ep)->key, &ep_tl_bitmap);
@@ -923,8 +923,9 @@ ucp_ep_create_to_worker_addr(ucp_worker_h worker,
     *ep_p = ep;
     return UCS_OK;
 
-err_delete:
-    ucp_ep_delete(ep);
+err_destroy:
+    /* Destroy the lanes connected before the failure */
+    ucp_ep_destroy_internal(ep);
 err:
     return status;
 }
@@ -3037,6 +3038,11 @@ void ucp_ep_cleanup_lanes(ucp_ep_h ep)
     uct_ep_h uct_eps[UCP_MAX_LANES] = { NULL };
     ucp_lane_index_t lane;
     uct_ep_h uct_ep;
+
+    if (ep->cfg_index == UCP_WORKER_CFG_INDEX_NULL) {
+        /* Lanes were not initialized */
+        return;
+    }
 
     ucs_debug("ep %p: cleanup lanes", ep);
 
